@@ -1,6 +1,4 @@
 import Parser from "rss-parser";
-import fetch from "node-fetch";
-import { JSDOM } from "jsdom";
 import { Article, RSSFeed, RSSItem } from "./types.js";
 import { getConfig } from "./config.js";
 
@@ -16,40 +14,6 @@ const removeDuplicates = (articles: Article[]): Article[] => {
 		seen.add(key);
 		return true;
 	});
-};
-
-const extractArticleContent = async (url: string): Promise<string | null> => {
-	try {
-		const response = await fetch(url);
-		const html = await response.text();
-		const dom = new JSDOM(html);
-
-		// Try to find the main content
-		const selectors = [
-			"article",
-			'[role="main"]',
-			".content",
-			".post-content",
-			".article-content",
-			"main",
-		];
-
-		for (const selector of selectors) {
-			const element = dom.window.document.querySelector(selector);
-			if (element) {
-				return element.textContent?.trim() || "";
-			}
-		}
-
-		// Fallback to body content
-		return dom.window.document.body.textContent?.trim() || "";
-	} catch (error) {
-		console.error(
-			`❌ Error extracting content from ${url}:`,
-			error instanceof Error ? error.message : "Unknown error"
-		);
-		return null;
-	}
 };
 
 const processFeedItems = (items: RSSItem[], source: string): Article[] => {
@@ -69,19 +33,6 @@ const isAIRelated = (article: Article): boolean => {
 	const config = getConfig();
 	const content = `${article.title} ${article.content}`.toLowerCase();
 	return config.aiKeywords.some((keyword) => content.includes(keyword));
-};
-
-// Dynamic RSS feed discovery - you can implement your own logic here
-const getDynamicRSSFeeds = (): string[] => {
-	// This is where you can implement your own RSS feed discovery logic
-	// For example:
-	// - Read from a configuration file
-	// - Fetch from an API
-	// - Use environment variables
-	// - Implement RSS feed discovery algorithms
-
-	// For now, return an empty array - you can implement your own sources
-	return [];
 };
 
 export const fetchRecentArticles = async (

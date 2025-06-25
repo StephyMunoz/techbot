@@ -19,12 +19,12 @@ export interface RSSFeed {
 }
 
 export interface RSSItem {
-	title: string;
-	link: string;
+	title?: string;
+	link?: string;
 	content?: string;
 	contentSnippet?: string;
 	summary?: string;
-	pubDate: string;
+	pubDate?: string;
 }
 
 export interface SlackMessage {

@@ -1,7 +1,7 @@
 import Parser from "rss-parser";
 import fetch from "node-fetch";
 import { JSDOM } from "jsdom";
-import { Article, RSSFeed, RSSItem } from "./types";
+import { Article, RSSFeed, RSSItem } from "./types.js";
 
 const parser = new Parser();
 
@@ -60,19 +60,22 @@ const extractArticleContent = async (url: string): Promise<string | null> => {
 };
 
 const processFeedItems = (items: RSSItem[], source: string): Article[] => {
-	return items.map((item) => ({
-		title: item.title,
-		link: item.link,
-		content: item.content || item.contentSnippet || item.summary || "",
-		pubDate: item.pubDate,
-		source,
-	}));
+	return items
+		.filter((item) => item.title && item.link && item.pubDate) // Filter out items with missing required data
+		.map((item) => ({
+			title: item.title!,
+			link: item.link!,
+			content: item.content || item.contentSnippet || item.summary || "",
+			pubDate: item.pubDate!,
+			source,
+		}));
 };
 
 export const fetchRecentArticles = async (
 	limit: number = 3
 ): Promise<Article[]> => {
 	const allArticles: Article[] = [];
+	const articlesPerFeed = Math.max(3, Math.ceil(limit / RSS_FEEDS.length)); // Fetch more per feed for better selection
 
 	for (const feedUrl of RSS_FEEDS) {
 		try {
@@ -81,7 +84,7 @@ export const fetchRecentArticles = async (
 
 			// Get the most recent articles
 			const recentArticles: Article[] = processFeedItems(
-				feed.items.slice(0, limit),
+				feed.items.slice(0, articlesPerFeed),
 				feed.title || new URL(feedUrl).hostname
 			);
 

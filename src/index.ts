@@ -1,5 +1,5 @@
 import dotenv from "dotenv";
-import { techBot } from "./techbot";
+import { techBot } from "./techbot.js";
 
 // Load environment variables
 dotenv.config();

@@ -130,22 +130,26 @@ export const selectMostRelevantArticle = async (
 	}
 
 	const prompt = `
-    You are a senior software developer tasked with selecting the most relevant and impactful technology news article for a development team.
+    You are a senior software developer tasked with selecting the most relevant and impactful AI/technology news article for a development team.
     
-    Please analyze the following articles and select the ONE that would be most valuable for a software development team to discuss.
+    Please analyze the following AI-related articles and select the ONE that would be most valuable for a software development team to discuss.
     Consider factors like:
-    - Technical innovation and advancement
-    - Industry impact and relevance
-    - Potential for meaningful team discussion
-    - Educational value for developers
-    - Timeliness and current relevance
+    - Technical innovation in AI/ML
+    - Industry impact and relevance to developers
+    - Potential for meaningful team discussion about AI implementation
+    - Educational value for AI/ML development
+    - Breaking news in AI technology
+    - Practical applications and use cases
+    - Long-term implications for software development
+    - New tools, frameworks, or methodologies in AI
     
-    Articles to evaluate:
+    AI-related articles to evaluate:
     ${articles
 					.map(
 						(article, index) => `
     ${index + 1}. "${article.title}"
        Source: ${article.source}
+       Published: ${new Date(article.pubDate).toLocaleDateString()}
        Content: ${article.content.substring(0, 300)}...
     `
 					)
@@ -153,7 +157,7 @@ export const selectMostRelevantArticle = async (
     
     Respond with ONLY the number (1-${
 					articles.length
-				}) of the most relevant article. No explanation needed, just the number.`;
+				}) of the most relevant AI article. No explanation needed, just the number.`;
 
 	try {
 		const response = await generateContent(prompt);

@@ -2,16 +2,9 @@ import Parser from "rss-parser";
 import fetch from "node-fetch";
 import { JSDOM } from "jsdom";
 import { Article, RSSFeed, RSSItem } from "./types.js";
+import { getConfig } from "./config.js";
 
 const parser = new Parser();
-
-const RSS_FEEDS: string[] = [
-	"https://feeds.feedburner.com/TechCrunch/",
-	"https://rss.cnn.com/rss/edition_technology.rss",
-	"https://feeds.arstechnica.com/arstechnica/index",
-	"https://www.wired.com/feed/rss",
-	"https://feeds.feedburner.com/venturebeat/SZYF",
-];
 
 const removeDuplicates = (articles: Article[]): Article[] => {
 	const seen = new Set<string>();
@@ -71,20 +64,58 @@ const processFeedItems = (items: RSSItem[], source: string): Article[] => {
 		}));
 };
 
-export const fetchRecentArticles = async (
-	limit: number = 3
-): Promise<Article[]> => {
-	const allArticles: Article[] = [];
-	const articlesPerFeed = Math.max(3, Math.ceil(limit / RSS_FEEDS.length)); // Fetch more per feed for better selection
+// Function to check if an article is AI-related using config
+const isAIRelated = (article: Article): boolean => {
+	const config = getConfig();
+	const content = `${article.title} ${article.content}`.toLowerCase();
+	return config.aiKeywords.some((keyword) => content.includes(keyword));
+};
 
-	for (const feedUrl of RSS_FEEDS) {
+// Dynamic RSS feed discovery - you can implement your own logic here
+const getDynamicRSSFeeds = (): string[] => {
+	// This is where you can implement your own RSS feed discovery logic
+	// For example:
+	// - Read from a configuration file
+	// - Fetch from an API
+	// - Use environment variables
+	// - Implement RSS feed discovery algorithms
+
+	// For now, return an empty array - you can implement your own sources
+	return [];
+};
+
+export const fetchRecentArticles = async (
+	limit?: number
+): Promise<Article[]> => {
+	const config = getConfig();
+	const maxArticles = limit || config.maxTotalArticles;
+	const allArticles: Article[] = [];
+
+	if (config.rssFeeds.length === 0) {
+		console.log("📡 No RSS feeds configured.");
+		console.log("💡 To add RSS feeds, you can:");
+		console.log("   1. Set the RSS_FEEDS environment variable:");
+		console.log(
+			"      RSS_FEEDS=https://feeds.feedburner.com/TechCrunch/,https://feeds.arstechnica.com/arstechnica/index"
+		);
+		console.log("   2. Or modify the defaultConfig in src/config.ts");
+		console.log("   3. Or create a .env file with your RSS feeds");
+		return allArticles;
+	}
+
+	const articlesPerFeed = Math.max(
+		3,
+		Math.ceil(maxArticles / config.rssFeeds.length)
+	);
+
+	for (const feedUrl of config.rssFeeds) {
 		try {
 			console.log(`📡 Fetching from: ${feedUrl}`);
 			const feed: RSSFeed = await parser.parseURL(feedUrl);
 
-			// Get the most recent articles
+			// Get recent articles
 			const recentArticles: Article[] = processFeedItems(
-				feed.items.slice(0, articlesPerFeed),
+				feed.items.slice(0, articlesPerFeed * 2), // Fetch more to account for AI filtering
 				feed.title || new URL(feedUrl).hostname
 			);
 
@@ -98,9 +129,17 @@ export const fetchRecentArticles = async (
 		}
 	}
 
-	// Sort by publication date (newest first) and remove duplicates
+	// Sort by publication date (newest first), remove duplicates, and filter for AI-related content
 	const uniqueArticles = removeDuplicates(allArticles);
-	return uniqueArticles
+	const aiArticles = uniqueArticles.filter(isAIRelated);
+
+	console.log(
+		`🤖 Found ${aiArticles.length} AI-related articles out of ${uniqueArticles.length} total articles`
+	);
+
+	const filteredArticles = aiArticles
 		.sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime())
-		.slice(0, limit);
+		.slice(0, maxArticles);
+
+	return filteredArticles;
 };

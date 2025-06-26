@@ -162,3 +162,6 @@ yarn.lock
 
 # PartyTown
 **/~partytown/
+
+# TechBot history file
+.techbot-history.json

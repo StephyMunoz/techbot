@@ -8,7 +8,13 @@ import {
 import { formatSlackMessage } from "./message-formatter.js";
 import { ArticleHistoryManager } from "./article-history.js";
 
+/**
+ * Main TechBot class that orchestrates the entire process
+ */
 export const techBot = {
+  /**
+   * Main execution method that fetches, processes, and formats AI news articles
+   */
   async run(): Promise<void> {
     // Initialize history manager
     const historyManager = new ArticleHistoryManager();
@@ -19,7 +25,7 @@ export const techBot = {
         "🤖 TechBot starting up with premium AI and development news sources...\n"
       );
 
-      // Show history stats
+      // Show history statistics
       const stats = historyManager.getStats();
       if (stats.totalSelected > 0) {
         const hoursSinceLastRun = Math.floor(

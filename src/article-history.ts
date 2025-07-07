@@ -1,10 +1,12 @@
-import { ArticleHistory } from "./types.js";
+import { ArticleHistory, CONSTANTS } from "./types.js";
 import { promises as fs } from "fs";
 import path from "path";
 
-const HISTORY_FILE = path.join(process.cwd(), ".techbot-history.json");
-const MAX_HISTORY_SIZE = 50; // Remember last 50 articles
+const HISTORY_FILE = path.join(process.cwd(), CONSTANTS.HISTORY.HISTORY_FILE);
 
+/**
+ * Manages article history to avoid selecting duplicate articles
+ */
 export class ArticleHistoryManager {
   private history: ArticleHistory;
 
@@ -12,11 +14,13 @@ export class ArticleHistoryManager {
     this.history = {
       selectedArticles: [],
       lastRun: new Date().toISOString(),
-      maxHistorySize: MAX_HISTORY_SIZE,
+      maxHistorySize: CONSTANTS.HISTORY.MAX_SIZE,
     };
   }
 
-  // Load history from file
+  /**
+   * Load history from file system
+   */
   async loadHistory(): Promise<void> {
     try {
       const data = await fs.readFile(HISTORY_FILE, "utf-8");
@@ -27,7 +31,7 @@ export class ArticleHistoryManager {
         this.history = {
           selectedArticles: parsed.selectedArticles,
           lastRun: parsed.lastRun || new Date().toISOString(),
-          maxHistorySize: parsed.maxHistorySize || MAX_HISTORY_SIZE,
+          maxHistorySize: parsed.maxHistorySize || CONSTANTS.HISTORY.MAX_SIZE,
         };
 
         // Trim history if it's too large
@@ -45,7 +49,9 @@ export class ArticleHistoryManager {
     }
   }
 
-  // Save history to file
+  /**
+   * Save history to file system
+   */
   async saveHistory(): Promise<void> {
     try {
       await fs.writeFile(HISTORY_FILE, JSON.stringify(this.history, null, 2));
@@ -54,12 +60,16 @@ export class ArticleHistoryManager {
     }
   }
 
-  // Check if an article has been selected before
+  /**
+   * Check if an article has been selected before
+   */
   hasBeenSelected(articleUrl: string): boolean {
     return this.history.selectedArticles.includes(articleUrl);
   }
 
-  // Add an article to the history
+  /**
+   * Add an article to the selection history
+   */
   addSelectedArticle(articleUrl: string): void {
     // Remove if already exists to avoid duplicates
     this.history.selectedArticles = this.history.selectedArticles.filter(
@@ -80,12 +90,16 @@ export class ArticleHistoryManager {
     this.history.lastRun = new Date().toISOString();
   }
 
-  // Get articles that haven't been selected before
+  /**
+   * Filter articles to only include those that haven't been selected before
+   */
   filterUnselectedArticles<T extends { link: string }>(articles: T[]): T[] {
     return articles.filter((article) => !this.hasBeenSelected(article.link));
   }
 
-  // Get history stats
+  /**
+   * Get history statistics
+   */
   getStats(): {
     totalSelected: number;
     lastRun: string;
@@ -103,24 +117,30 @@ export class ArticleHistoryManager {
     };
   }
 
-  // Clear history (useful for testing or reset)
+  /**
+   * Clear all history (useful for testing or reset)
+   */
   async clearHistory(): Promise<void> {
     this.history = {
       selectedArticles: [],
       lastRun: new Date().toISOString(),
-      maxHistorySize: MAX_HISTORY_SIZE,
+      maxHistorySize: CONSTANTS.HISTORY.MAX_SIZE,
     };
     await this.saveHistory();
   }
 
-  // Get time since last run
+  /**
+   * Get time since last run in milliseconds
+   */
   getTimeSinceLastRun(): number {
     return Date.now() - new Date(this.history.lastRun).getTime();
   }
 
-  // Check if we should force refresh (e.g., if it's been more than 24 hours)
+  /**
+   * Check if we should force refresh (e.g., if it's been more than 24 hours)
+   */
   shouldForceRefresh(): boolean {
     const hoursSinceLastRun = this.getTimeSinceLastRun() / (1000 * 60 * 60);
-    return hoursSinceLastRun > 24; // Force refresh after 24 hours
+    return hoursSinceLastRun > CONSTANTS.HISTORY.FORCE_REFRESH_HOURS;
   }
 }

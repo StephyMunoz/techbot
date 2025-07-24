@@ -7,6 +7,7 @@ import {
 } from "./ai-processor.js";
 import { formatSlackMessage } from "./message-formatter.js";
 import { ArticleHistoryManager } from "./article-history.js";
+import { SlackClient } from "./slack-client.js";
 
 /**
  * Main TechBot class that orchestrates the entire process
@@ -19,6 +20,24 @@ export const techBot = {
     // Initialize history manager
     const historyManager = new ArticleHistoryManager();
     await historyManager.loadHistory();
+
+    // Initialize Slack client if credentials are provided
+    const slackToken = process.env.SLACK_BOT_TOKEN;
+    const slackChannelId = process.env.SLACK_CHANNEL_ID;
+    let slackClient: SlackClient | null = null;
+
+    if (slackToken && slackChannelId) {
+      slackClient = new SlackClient(slackToken, slackChannelId);
+
+      // Test Slack connection
+      const isConnected = await slackClient.testConnection();
+      if (!isConnected) {
+        console.log("⚠️  Slack connection failed, will output to console only");
+        slackClient = null;
+      } else {
+        await slackClient.getChannelInfo();
+      }
+    }
 
     try {
       console.log(
@@ -119,6 +138,27 @@ export const techBot = {
         console.log("=".repeat(80));
         console.log(message);
         console.log("=".repeat(80));
+
+        // Post to Slack if client is available
+        if (slackClient) {
+          try {
+            await slackClient.postMessage({
+              title: selectedArticle.title,
+              summary,
+              question,
+              link: selectedArticle.link,
+            });
+          } catch (slackError) {
+            console.error("❌ Failed to post to Slack:", slackError);
+            console.log(
+              "💡 Message is still available in console output above"
+            );
+          }
+        } else {
+          console.log(
+            "\n💡 To post directly to Slack, set SLACK_BOT_TOKEN and SLACK_CHANNEL_ID environment variables"
+          );
+        }
 
         // Additional metadata for reference
         console.log("\n📋 ARTICLE METADATA:");
